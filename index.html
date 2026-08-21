@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SlopCut — strip AI comments, files stay here</title>
+    <meta
+      name="description"
+      content="Drop source files. Get a copy with long AI comments cut. Nothing is uploaded."
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #1c1917;
+        --muted: #57534e;
+        --line: #e7e5e4;
+        --bg: #fafaf9;
+        --card: #ffffff;
+        --accent: #0f766e;
+        --warn: #9a3412;
+        --hit: #fecaca;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        line-height: 1.5;
+      }
+      main { max-width: 44rem; margin: 0 auto; padding: 4rem 1.5rem 5rem; }
+      h1 { font-size: 2rem; letter-spacing: -0.03em; margin: 0 0 0.75rem; }
+      h2 { font-size: 1.05rem; margin: 2rem 0 0.5rem; }
+      .kicker { color: var(--muted); font-size: 0.875rem; font-weight: 600; margin: 0 0 0.75rem; }
+      .lede { color: var(--muted); font-size: 1.125rem; max-width: 36rem; }
+      .drop {
+        margin: 2rem 0 1rem;
+        border: 1px dashed #d6d3d1;
+        border-radius: 1rem;
+        background: var(--card);
+        padding: 2rem 1.25rem;
+        text-align: center;
+      }
+      .drop.over { border-color: var(--accent); background: #f0fdfa; }
+      button {
+        appearance: none;
+        border: 0;
+        background: var(--ink);
+        color: white;
+        border-radius: 0.6rem;
+        padding: 0.6rem 1rem;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button.secondary { background: white; color: var(--ink); border: 1px solid var(--line); }
+      button:disabled { opacity: 0.45; cursor: not-allowed; }
+      .meta { color: var(--muted); font-size: 0.875rem; }
+      .row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0; justify-content: center; }
+      .counts {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        margin: 1rem 0;
+      }
+      .counts div {
+        border: 1px solid var(--line);
+        border-radius: 0.75rem;
+        padding: 0.7rem;
+        background: var(--card);
+      }
+      .counts b { display: block; font-size: 1.25rem; }
+      .counts span { font-size: 0.75rem; color: var(--muted); }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        max-height: 22rem;
+        overflow: auto;
+        font-size: 0.8rem;
+      }
+      mark { background: var(--hit); text-decoration: line-through; }
+      .cards { display: grid; gap: 0.75rem; grid-template-columns: 1fr; }
+      @media (min-width: 640px) { .cards { grid-template-columns: 1fr 1fr 1fr; } }
+      .cards article {
+        border: 1px solid var(--line);
+        border-radius: 0.9rem;
+        padding: 1rem;
+        background: var(--card);
+      }
+      .cards h2 { font-size: 1rem; margin: 0 0 0.4rem; }
+      .cards p { margin: 0; color: var(--muted); font-size: 0.875rem; }
+      footer {
+        margin-top: 3rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+      a { color: inherit; }
+      .warn { color: var(--warn); font-size: 0.875rem; }
+      input[type="file"] { display: none; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="kicker">SlopCut</p>
+      <h1>You already said the problem out loud.</h1>
+      <p class="lede">
+        “My coworkers continue to dump hundreds of lines of AI documentation in
+        every PR.” Drop the file. Heuristic cut in this tab. Nothing is uploaded.
+      </p>
+
+      <div class="drop" id="drop">
+        <p><strong>Drop source files or a zip</strong></p>
+        <p class="meta">8 MB cap, 20 files. License headers, TODOs, and short comments stay.</p>
+        <div class="row">
+          <button type="button" id="pick">Choose files</button>
+          <button type="button" class="secondary" id="sample">Load sample</button>
+        </div>
+        <input
+          id="file"
+          type="file"
+          multiple
+          accept=".js,.jsx,.ts,.tsx,.mjs,.cjs,.py,.go,.rs,.java,.c,.h,.cpp,.cc,.cs,.rb,.php,.swift,.kt,.scala,.sql,.css,.html,.md,.json,.zip,text/plain,application/zip"
+        />
+      </div>
+
+      <p class="meta" id="status">Waiting for a file.</p>
+      <p class="warn" id="error" hidden></p>
+      <div class="counts" id="counts" hidden>
+        <div><b id="c-files">0</b><span>files</span></div>
+        <div><b id="c-cut">0</b><span>comments cut</span></div>
+        <div><b id="c-lines">0</b><span>lines removed</span></div>
+      </div>
+      <pre id="preview" hidden></pre>
+      <div class="row" style="justify-content: flex-start;">
+        <button type="button" id="run" disabled>Download cleaned zip</button>
+      </div>
+
+      <section class="cards" style="margin-top: 2.5rem;">
+        <article>
+          <h2>The declaration is the qualifier</h2>
+          <p>If you skip the AI comments in review, you already know you need this. No demo call.</p>
+        </article>
+        <article>
+          <h2>The cut file is the product</h2>
+          <p>Long blocks, phrase tells, and paragraph-per-line noise go. Code and short notes stay.</p>
+        </article>
+        <article>
+          <h2>Built for the reply</h2>
+          <p>Someone posted the pain. This page is the answer. Try it in this tab, then send the URL back.</p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Who this is for</h2>
+        <ul class="meta">
+          <li>A PR that grew a novel in the comments</li>
+          <li>A README that starts “In today’s rapidly evolving landscape”</li>
+          <li>A folder you want readable again before you merge</li>
+        </ul>
+        <p class="warn">Heuristic only. Read the preview. It will not judge whether the code is good.</p>
+      </section>
+
+      <footer>
+        <a href="https://github.com/davidlifschitz/gtm-slopcut">Source</a>
+        · Ask:
+        <a href="https://news.ycombinator.com/item?id=49337050">HN AI comment dump</a>
+        · 8 MB. No account. No cloud copy.
+      </footer>
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
