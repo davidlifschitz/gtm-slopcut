@@ -268,9 +268,24 @@ els.sample.addEventListener("click", () => {
   setError("");
   render();
 });
+function uniqueResults(entries) {
+  const used = new Set();
+  return entries.map((entry) => {
+    let name = entry.name;
+    let n = 2;
+    while (used.has(name.toLowerCase())) {
+      const dot = entry.name.lastIndexOf(".");
+      const split = dot > entry.name.lastIndexOf("/") ? dot : entry.name.length;
+      name = entry.name.slice(0, split) + "-" + n++ + entry.name.slice(split);
+    }
+    used.add(name.toLowerCase());
+    return { ...entry, name };
+  });
+}
+
 els.run.addEventListener("click", async () => {
   const zip = new JSZip();
-  for (const r of results) zip.file(r.name, r.cleaned);
+  for (const r of uniqueResults(results)) zip.file(r.name, r.cleaned);
   const blob = await zip.generateAsync({ type: "blob" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
