@@ -23,7 +23,7 @@ let results = [];
 
 function setError(msg) {
   els.error.hidden = !msg;
-  els.error.textContent = msg || "";
+  els.error.textContent = msg ? [els.error.textContent, msg].filter(Boolean).join(" ") : "";
 }
 
 function escapeHtml(s) {
@@ -204,16 +204,24 @@ async function addFiles(list) {
       continue;
     }
     if (/\.zip$/i.test(file.name) || file.type === "application/zip") {
-      await fromZip(file);
+      try {
+        await fromZip(file);
+      } catch (err) {
+        setError(`${file.name}: could not read archive.`);
+      }
       continue;
     }
     if (!isTexty(file.name)) {
       setError(`${file.name} is not a source file I know.`);
       continue;
     }
-    const src = await file.text();
-    const { cleaned, cut } = stripFile(file.name, src);
-    results.push({ name: file.name, cleaned, cut });
+    try {
+      const src = await file.text();
+      const { cleaned, cut } = stripFile(file.name, src);
+      results.push({ name: file.name, cleaned, cut });
+    } catch (err) {
+      setError(`${file.name}: could not read source.`);
+    }
   }
   render();
 }
@@ -222,8 +230,16 @@ async function fromZip(file) {
   const zip = await JSZip.loadAsync(file);
   const paths = Object.keys(zip.files).filter((p) => !zip.files[p].dir && isTexty(p) && !SKIP_DIR.test(p));
   for (const path of paths) {
-    if (results.length >= MAX_FILES) break;
-    const src = await zip.files[path].async("string");
+    if (results.length >= MAX_FILES) {
+      setError(`Cap is ${MAX_FILES} files; remaining archive sources were skipped.`);
+      break;
+    }
+    const data = await zip.files[path].async("uint8array");
+    if (data.byteLength > MAX_BYTES) {
+      setError(`${path} is over 8 MB after extraction; skipped.`);
+      continue;
+    }
+    const src = new TextDecoder().decode(data);
     const { cleaned, cut } = stripFile(path, src);
     results.push({ name: path, cleaned, cut });
   }
