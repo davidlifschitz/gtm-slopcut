@@ -69,3 +69,10 @@ it('keeps every source when output paths collide', () => {
   expect(Array.from(run('uniqueResults([{name:"a.js"},{name:"a-2.js"},{name:"a.js"},{name:"A.js"},{name:"dir/a.js"},{name:"dir/a.js"}]).map(r=>r.name)')))
     .toEqual(['a.js','a-2.js','a-3.js','A-4.js','dir/a.js','dir/a-2.js']);
 });
+
+it('loads classic application and bundled zip scripts for file URLs', async () => {
+  const { window } = loadApp();
+  const scripts = Array.from(window.document.scripts);
+  expect(scripts.find(s => s.getAttribute('src') === './app.js').type).not.toBe('module');
+  expect(scripts.every(s => !/^https?:/.test(s.getAttribute('src') || ''))).toBe(true);
+});
