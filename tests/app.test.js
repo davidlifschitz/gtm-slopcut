@@ -41,3 +41,25 @@ describe('code preservation', () => {
     expect(run(`stripC(${JSON.stringify(source)}).cleaned`)).toBe(source);
   });
 });
+
+describe('archive import', () => {
+  it('reports corrupt archives and continues the batch', async () => {
+    const { run, window } = loadApp();
+    await run('addFiles([{name:"bad.zip",size:3}, {name:"ok.js",size:10,text:async()=>"// leverage"}])');
+    expect(window.document.getElementById('error').textContent).toContain('bad.zip');
+    expect(run('results.length')).toBe(1);
+    expect(window.document.getElementById('run').disabled).toBe(false);
+  });
+  it('warns about files omitted by the archive cap', async () => {
+    const { run, window } = loadApp();
+    await run('(async()=>{const zip=new JSZip();for(let i=0;i<21;i++)zip.file(i+".js","// note");await fromZip(await zip.generateAsync({type:"uint8array"}));})()');
+    expect(run('results.length')).toBe(20);
+    expect(window.document.getElementById('error').textContent).toContain('20');
+  });
+  it('rejects expanded source entries over the byte cap', async () => {
+    const { run, window } = loadApp();
+    await run('(async()=>{const zip=new JSZip();zip.file("big.js","x".repeat(MAX_BYTES+1));await fromZip(await zip.generateAsync({type:"uint8array"}));})()');
+    expect(run('results.length')).toBe(0);
+    expect(window.document.getElementById('error').textContent).toContain('8 MB');
+  });
+});
