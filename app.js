@@ -70,7 +70,7 @@ function stripC(src) {
       out += src[i];
       while (j < n) {
         out += src[j];
-        if (src[j] === "\\" && q !== "'") {
+        if (src[j] === "\\") {
           j += 1;
           if (j < n) out += src[j];
         } else if (src[j] === q) {
@@ -101,8 +101,8 @@ function stripC(src) {
       const block = src.slice(i, end);
       if (isSlop(block)) {
         cut.push(block);
+        out += block.includes("\n") ? block.replace(/[^\n]/g, "") : " ";
         i = end;
-        if (src[i] === "\n") i += 1;
         continue;
       }
       out += block;
@@ -152,7 +152,7 @@ function stripHtml(src) {
 }
 
 function collapse(s) {
-  return s.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n");
+  return s;
 }
 
 function stripFile(name, src) {

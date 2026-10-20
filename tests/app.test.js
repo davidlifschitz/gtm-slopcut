@@ -20,3 +20,24 @@ describe('comment cleaning', () => {
     expect(window.document.getElementById('c-cut').textContent).toBe('1');
   });
 });
+
+describe('code preservation', () => {
+  it('does not join identifiers across removed comments', () => {
+    const { run } = loadApp();
+    expect(run('stripC("return/* leverage */value").cleaned')).toBe('return value');
+  });
+  it('retains newlines that affect automatic semicolon insertion', () => {
+    const { run } = loadApp();
+    expect(run('stripC("return/* leverage\\n */value").cleaned')).toBe('return\nvalue');
+  });
+  it('does not normalize whitespace inside template strings', () => {
+    const { run } = loadApp();
+    const source = 'const text = `one  \n\n\nend`;';
+    expect(run(`stripC(${JSON.stringify(source)}).cleaned`)).toBe(source);
+  });
+  it('preserves escaped single quotes and apparent comments in strings', () => {
+    const { run } = loadApp();
+    const source = "const s = 'it\\'s // leverage';";
+    expect(run(`stripC(${JSON.stringify(source)}).cleaned`)).toBe(source);
+  });
+});
