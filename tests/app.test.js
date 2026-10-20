@@ -63,3 +63,9 @@ describe('archive import', () => {
     expect(window.document.getElementById('error').textContent).toContain('8 MB');
   });
 });
+
+it('keeps every source when output paths collide', () => {
+  const { run } = loadApp();
+  expect(Array.from(run('uniqueResults([{name:"a.js"},{name:"a-2.js"},{name:"a.js"},{name:"A.js"},{name:"dir/a.js"},{name:"dir/a.js"}]).map(r=>r.name)')))
+    .toEqual(['a.js','a-2.js','a-3.js','A-4.js','dir/a.js','dir/a-2.js']);
+});
